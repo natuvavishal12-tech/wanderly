@@ -1,54 +1,16 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
-const destinations = [
-  {
-    name: "Bali",
-    country: "Indonesia",
-    image: "https://images.unsplash.com/photo-1537996194471-e667a8c6e3b9?w=800&q=80",
-    tag: "Beach & Culture",
-    price: "₹25,000",
-  },
-  {
-    name: "Paris",
-    country: "France",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
-    tag: "Romance & Art",
-    price: "₹85,000",
-  },
-  {
-    name: "Tokyo",
-    country: "Japan",
-    image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80",
-    tag: "City & Food",
-    price: "₹95,000",
-  },
-  {
-    name: "Manali",
-    country: "India",
-    image: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80",
-    tag: "Mountains",
-    price: "₹12,000",
-  },
-  {
-    name: "Goa",
-    country: "India",
-    image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=80",
-    tag: "Beach Party",
-    price: "₹8,000",
-  },
-  {
-    name: "Santorini",
-    country: "Greece",
-    image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800&q=80",
-    tag: "Island Escape",
-    price: "₹1,10,000",
-  },
-];
+export default async function ExplorePage() {
+  const supabase = await createClient();
+  const { data: destinations } = await supabase
+    .from("destinations")
+    .select("*")
+    .order("is_featured", { ascending: false })
+    .order("rating", { ascending: false });
 
-export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-2xl font-bold text-brand-600">
@@ -57,6 +19,7 @@ export default function ExplorePage() {
           <nav className="flex gap-6 text-sm font-medium text-slate-600">
             <Link href="/explore" className="text-brand-600">Explore</Link>
             <Link href="/plan" className="hover:text-brand-600">AI Planner</Link>
+            <Link href="/stories" className="hover:text-brand-600">Stories</Link>
             <Link href="/login" className="hover:text-brand-600">Login</Link>
           </nav>
         </div>
@@ -68,7 +31,6 @@ export default function ExplorePage() {
           <p className="text-lg text-slate-600">Find your next favorite place on earth</p>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-10">
           {["All", "Beach", "Mountains", "City", "Adventure", "Culture", "India"].map((f) => (
             <button
@@ -84,17 +46,16 @@ export default function ExplorePage() {
           ))}
         </div>
 
-        {/* Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destinations.map((dest) => (
+          {(destinations || []).map((dest) => (
             <Link
-              key={dest.name}
-              href={`/destination/${dest.name.toLowerCase()}`}
+              key={dest.id}
+              href={`/destination/${dest.slug}`}
               className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img
-                  src={dest.image}
+                  src={dest.cover_image}
                   alt={dest.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                 />
@@ -105,15 +66,26 @@ export default function ExplorePage() {
                     <h3 className="text-xl font-semibold text-slate-900">{dest.name}</h3>
                     <p className="text-slate-500 text-sm">{dest.country}</p>
                   </div>
-                  <span className="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full">
-                    {dest.tag}
-                  </span>
+                  {dest.rating && (
+                    <span className="text-sm font-medium">⭐ {dest.rating}</span>
+                  )}
                 </div>
-                <p className="text-brand-600 font-medium mt-3">From {dest.price}</p>
+                <p className="text-slate-600 text-sm line-clamp-2 mb-3">
+                  {dest.short_description}
+                </p>
+                <p className="text-brand-600 font-medium">
+                  From ₹{dest.average_cost_per_day?.toLocaleString()}/day
+                </p>
               </div>
             </Link>
           ))}
         </div>
+
+        {(!destinations || destinations.length === 0) && (
+          <div className="text-center py-20 text-slate-500">
+            No destinations found yet.
+          </div>
+        )}
       </main>
     </div>
   );
